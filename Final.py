@@ -290,6 +290,11 @@ class App(tk.Tk):
                 messagebox.showwarning("Input Error", "All fields are required.")
                 return
 
+            # Enforce password length constraints (min 4, max 14)
+            if len(password) < 4 or len(password) > 14:
+                messagebox.showwarning("Input Error", "Password must be between 4 and 14 characters.")
+                return
+
             # Check for duplicate usernames
             for user in self.users:
                 if user["username"] == username:
