@@ -143,6 +143,10 @@ class LoginWindow(tk.Tk):
         else:
             # Ask to register new user if username not found
             if messagebox.askyesno("Register", f"Username '{username}' not found. Register as new user?"):
+                # Enforce password length constraints on registration
+                if len(password) < 4 or len(password) > 14:
+                    messagebox.showwarning("Input Error", "Password must be between 4 and 14 characters.")
+                    return
                 self.user_manager.add_user(username, password)
                 messagebox.showinfo("Registered", "User registered and logged in!")
                 self.destroy()
