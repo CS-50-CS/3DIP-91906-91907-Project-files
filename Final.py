@@ -14,6 +14,12 @@ ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
 
 USERS_FILE = os.path.join(os.path.dirname(__file__), "users.json")
 
+# Files used by the application:
+# - `users.json` stores user account dictionaries: username, password, permission.
+# - `orders.json` stores order history records (order_number, items, total, staff, paid, date).
+# Helper functions below load/save these files in a tolerant way so the app
+# starts even if the files are missing or empty.
+
 def load_users():
     if os.path.exists(USERS_FILE):
         try:
@@ -31,6 +37,9 @@ def load_users():
 def save_users(users):
     with open(USERS_FILE, "w", encoding="utf-8") as f:
         json.dump(users, f, indent=4)
+
+#The UI builds buttons and labels from this list
+
 
 MENU_ITEMS = [
     {"name": "Cappuccino", "price": 5},
@@ -55,7 +64,6 @@ def load_orders():
     if os.path.exists(ORDERS_FILE):
         try:
             with open(ORDERS_FILE, "r", encoding="utf-8") as f:
-                # Same tolerant read as users: empty file -> empty list
                 content = f.read().strip()
                 if not content:
                     return []
@@ -86,13 +94,14 @@ class LoginScreen(BaseScreen):
     """Login screen built as a reusable class."""
     def __init__(self, app):
         super().__init__(app)
-        # Build the login UI directly on the root (same behavior as before)
-        # We intentionally clear the entire window for the login view.
         self.app.clear()
+        # Use a centered frame for the login controls so the layout is stable
+        # and the entries have consistent widths independent of the window.
         frame = tk.Frame(self.app, bg="white")
         frame.pack(expand=True)
         tk.Label(frame, text="Login", font=("Arial", 64, "bold"), bg="white").pack(pady=40)
 
+        # Username row: label, entry and icon. Grid keeps entry expanding.
         user_frame = tk.Frame(frame, bg="white", highlightbackground="black", highlightthickness=1)
         user_frame.pack(pady=10, padx=200, fill=tk.X)
         user_frame.grid_columnconfigure(1, weight=1)
@@ -101,6 +110,7 @@ class LoginScreen(BaseScreen):
         user_entry.grid(row=0, column=1, padx=10, sticky="ew")
         tk.Label(user_frame, text=ICON_USER, font=("Arial", 24), bg="white", width=3, anchor="center").grid(row=0, column=2, padx=10)
 
+        # Password row: similar structure with masked entry
         pass_frame = tk.Frame(frame, bg="white", highlightbackground="black", highlightthickness=1)
         pass_frame.pack(pady=10, padx=200, fill=tk.X)
         pass_frame.grid_columnconfigure(1, weight=1)
@@ -109,6 +119,7 @@ class LoginScreen(BaseScreen):
         pass_entry.grid(row=0, column=1, padx=10, sticky="ew")
         tk.Label(pass_frame, text=ICON_LOCK, font=("Arial", 24), bg="white", width=3, anchor="center").grid(row=0, column=2, padx=10)
 
+        # Login logic: check credentials from loaded users and navigate on success
         def do_login():
             username = user_entry.get()
             password = pass_entry.get()
@@ -120,22 +131,19 @@ class LoginScreen(BaseScreen):
                     return
             messagebox.showerror("Login Failed", "Invalid username or password.")
 
+        # Bind Enter to submit so keyboard users can log in quickly
         user_entry.bind("<Return>", lambda event: do_login())
         pass_entry.bind("<Return>", lambda event: do_login())
         frame.bind("<Return>", lambda event: do_login())
         frame.focus_set()
 
+        # Action button for mouse users
         tk.Button(frame, text="Login", font=("Arial", 28), bg="white", bd=1, relief="solid",
                   highlightbackground="black", highlightthickness=1, width=16, command=do_login).pack(pady=30)
 
 
 class AccountsScreen(BaseScreen):
-    """Accounts management screen: list, delete, add users.
-
-    This class implements the same behaviors as the previous show_accounts
-    method but enclosed as a tk.Frame subclass so it can be unit-tested or
-    reused more easily.
-    """
+    """Accounts management screen: list, delete, add users. """
     def __init__(self, app):
         super().__init__(app)
         self.app.clear_content()
@@ -145,7 +153,9 @@ class AccountsScreen(BaseScreen):
             self.app.show_welcome()
             return
 
-        # Decide whether to use a scrollable canvas for long lists
+    # Decide whether to use a scrollable canvas for long lists. If the
+    # number of users exceeds `max_visible` we create a canvas + inner
+    # frame and place the controls inside it so the list can scroll.
         max_visible = 4
         use_scroll = len(self.app.users) > max_visible
 
@@ -238,7 +248,6 @@ class OrderScreen(BaseScreen):
     def __init__(self, app):
         super().__init__(app)
         self.app.clear_content()
-        # Reuse the same logic previously in show_order()
         self.app.current_order = []
         self.app.total_cost = 0
         self.app.current_order_counts = {}
@@ -293,10 +302,8 @@ class OrderScreen(BaseScreen):
         order_frame.grid_columnconfigure(0, weight=1)
 
         tk.Label(order_frame, text="Current Order", font=("Arial", 28, "bold"), bg="white").grid(row=0, column=0, columnspan=2, pady=10)
-        # Instead of a Listbox, use a frame with per-item controls
         # Keep the cart column compact by fixing its width and preventing
-        # the frame from propagating to larger sizes when text changes.
-        # Make the cart frame expand to the available space inside the order box
+        # the frame from changing sizes when text changes.
         self.cart_items_frame = tk.Frame(order_frame, bg="white")
         self.cart_items_frame.grid(row=1, column=0, columnspan=2, padx=20, sticky="nsew")
         order_frame.grid_rowconfigure(1, weight=1)
@@ -406,12 +413,15 @@ class OrderScreen(BaseScreen):
             if name in self.app.current_order_counts:
                 self.app.current_order_counts[name]["count"] += 1
             else:
+                # Store the item dict and the running count
                 self.app.current_order_counts[name] = {"item": item, "count": 1}
+            # Rebuild the cart UI to reflect the change
             update_cart_items()
 
         for i, item in enumerate(MENU_ITEMS):
             row = i // 2
             col = i % 2
+            # Each menu item becomes a button. Use a lambda function with default
             b = tk.Button(menu_parent, text=f'{item["name"]} - ${item["price"]}', font=("Arial", 18), width=20, height=2,
                           command=lambda item=item: add_to_order(item))
             b.grid(row=row, column=col, padx=10, pady=5, sticky="nsew")
@@ -434,7 +444,7 @@ class OrderScreen(BaseScreen):
 
 
 class OrderHistoryScreen(BaseScreen):
-    """Order history screen as a class (newest-first display)."""
+    """Order history screen as a class (newest order display first)."""
     def __init__(self, app):
         super().__init__(app)
         self.app.clear_content()
@@ -661,7 +671,6 @@ class App(tk.Tk):
 
 
     def record_order(self, paid=True):
-        # Stack items for saving as well
         if hasattr(self, 'current_order_counts') and self.current_order_counts:
             items = []
             for entry in self.current_order_counts.values():
@@ -670,7 +679,6 @@ class App(tk.Tk):
                 item["count"] = count
                 items.append(item)
         else:
-            # fallback to old behavior
             items = self.current_order
         order_record = {
             "order_number": self.order_number,
@@ -682,6 +690,8 @@ class App(tk.Tk):
         }
         self.order_history.append(order_record)
         save_orders(self.order_history)
+        # Increment the persistent order counter so saved orders always carry
+        # a unique increasing order number across app sessions.
         self.order_number += 1
 
     # After saving the order, incrementing order_number ensures uniqueness
