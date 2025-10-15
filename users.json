@@ -5,45 +5,8 @@
         "permission": "Admin"
     },
     {
-        "username": "Ryan",
-        "password": "abcd",
-        "permission": "Waiter"
-    },
-    {
-        "username": "Ethan",
-        "password": "qwerty",
-        "permission": "Waiter"
-    },
-    {
         "username": "Staff1",
-        "password": "1234",
-        "permission": "Waiter"
-    },
-    {
-        "username": "Staff2",
-        "password": "1234",
-        "permission": "Waiter"
-    },
-    {
-        "username": "Staff3",
-        "password": "1234",
-        "permission": "Waiter"
-    },
-    {
-        "username": "Staff4",
-        "password": "1234",
-        "permission": "Waiter"
-    },
-    {
-        "username": "Staff5",
-        "password": "1234",
-        "permission": "Waiter"
-    },
-    {
-        "username": "Staff6",
-        "password": "1234",
+        "password": "password",
         "permission": "Waiter"
     }
-
-    
 ]
